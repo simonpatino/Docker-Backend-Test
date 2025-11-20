@@ -1,7 +1,7 @@
 from collections.abc import AsyncIterator, Sequence
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, status
 from sqlmodel import Field, Session, SQLModel, create_engine, select
 
 from config import settings
@@ -49,3 +49,16 @@ def read_heroes() -> Sequence[Hero]:
     with Session(engine) as session:
         heroes = session.exec(select(Hero)).all()
         return heroes
+
+
+@app.get("/health/")
+def health_check() -> dict:
+    with Session(engine) as session:
+        test = session.exec(select(1)).first()
+
+        if test == 1:
+            return {"status": "healthy"}
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="unhealthy"
+            )

@@ -21,6 +21,9 @@ WORKDIR /app
 # Create a non-privileged user that the app will run under.
 # See https://docs.docker.com/go/dockerfile-user-best-practices/
 ARG UID=10001
+
+RUN apt-get update && apt-get install -y curl 
+
 RUN adduser \
     --disabled-password \
     --gecos "" \
@@ -37,6 +40,7 @@ RUN adduser \
 RUN --mount=type=cache,target=/root/.cache/pip \
     --mount=type=bind,source=requirements.txt,target=requirements.txt \
     python -m pip install -r requirements.txt
+    
 
 # Switch to the non-privileged user to run the application.
 USER appuser

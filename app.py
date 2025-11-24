@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, status
 from sqlmodel import Field, Session, SQLModel, create_engine, select, text
 
+
 from config import settings
 
 
@@ -29,13 +30,20 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
 
 app = FastAPI(lifespan=lifespan)
 
+# includes ALL routers
+
+
+from appSession import routerSession
+
+app.include_router(routerSession)
+
 
 @app.get("/")
 def hello() -> str:
     return "Hello, Docker!"
 
 
-@app.post("/heroes/")
+@app.post("/heroes/", response_model=Hero)
 def create_hero(hero: Hero) -> Hero:
     with Session(engine) as session:
         session.add(hero)
@@ -77,7 +85,7 @@ def read_hero(hero_id: int) -> Hero:
         return hero
 
 
-@app.put("/heroes/{hero_id}")
+@app.put("/heroes/{hero_id}", response_model=Hero)
 def update_hero(hero_id: int, updated_hero: Hero) -> Hero:
     with Session(engine) as session:
         hero = session.get(Hero, hero_id)
@@ -92,7 +100,7 @@ def update_hero(hero_id: int, updated_hero: Hero) -> Hero:
         return hero
 
 
-@app.delete("/heroes/{hero_id}")
+@app.delete("/heroes/{hero_id}", response_model=dict)
 def delete_hero(hero_id: int) -> dict:
     with Session(engine) as session:
         hero = session.get(Hero, hero_id)

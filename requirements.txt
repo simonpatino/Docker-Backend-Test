@@ -17,6 +17,8 @@ mypy==1.16.0
 mypy_extensions==1.1.0
 nodeenv==1.9.1
 pathspec==0.12.1
+passlib==1.7.4
+bcrypt==3.2.2
 platformdirs==4.3.8
 pre_commit==4.2.0
 psycopg==3.2.9

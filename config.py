@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     POSTGRES_PASSWORD: str | None = None
     POSTGRES_PASSWORD_FILE: str | None = None
     POSTGRES_DB: str
+    JWT_SECRET: str | None = None
+    JWT_SECRET_FILE: str | None = None
 
     @model_validator(mode="before")
     @classmethod
@@ -42,6 +44,35 @@ class Settings(BaseSettings):
                     return file.read().strip()
             raise ValueError(f"Password file {file_path} does not exist.")
         return v
+
+    @model_validator(mode="before")
+    @classmethod
+    def check_jwt_secret(cls, data: Any) -> Any:
+        """Validate that JWT_SECRET or JWT_SECRET_FILE is set."""
+        if isinstance(data, dict):
+            secret_file: str | None = data.get("JWT_SECRET_FILE")  # type: ignore
+            secret: str | None = data.get("JWT_SECRET")  # type: ignore
+            if secret_file is None and secret is None:
+                raise ValueError(
+                    "At least one of JWT_SECRET_FILE and JWT_SECRET must be set."
+                )
+        return data  # type: ignore
+
+    @field_validator("JWT_SECRET_FILE", mode="before")
+    @classmethod
+    def read_jwt_secret_from_file(cls, v: str | None) -> str | None:
+        if v is not None:
+            file_path = v
+            if os.path.exists(file_path):
+                with open(file_path) as file:
+                    return file.read().strip()
+            raise ValueError(f"JWT secret file {file_path} does not exist.")
+        return v
+
+    @property
+    def SECRET_KEY(self) -> str:
+        return self.JWT_SECRET or self.JWT_SECRET_FILE
+  
 
     @computed_field
     @property

@@ -18,11 +18,13 @@ services:
         condition: service_healthy
     secrets:
       - db-password
+      - jwt-secret
     environment:
       - POSTGRES_SERVER=db
       - POSTGRES_USER=postgres
       - POSTGRES_DB=example
       - POSTGRES_PASSWORD_FILE=/run/secrets/db-password
+      - JWT_SECRET_FILE=/run/secrets/jwt-secret
 
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8001/health/"]
@@ -69,4 +71,8 @@ volumes:
 secrets:
   db-password:
     file: db/password.txt
+  jwt-secret:
+    file: jwt/secret.txt
+  
+
 

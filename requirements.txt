@@ -2,6 +2,7 @@ annotated-types==0.7.0
 anyio==4.9.0
 cfgv==3.4.0
 click==8.2.1
+datetime==5.5
 distlib==0.3.9
 fastapi==0.115.12
 fastapi-cli==0.0.7
@@ -29,6 +30,7 @@ pydantic_core==2.33.2
 Pygments==2.19.1
 pyright==1.1.401
 python-dotenv==1.1.0
+python-jose[cryptography]==3.3.0
 PyYAML==6.0.2
 rich==14.0.0
 rich-toolkit==0.14.7
@@ -46,3 +48,4 @@ uvloop==0.21.0
 virtualenv==20.31.2
 watchfiles==1.0.5
 websockets==15.0.1
+

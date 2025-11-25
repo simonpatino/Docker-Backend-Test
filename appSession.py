@@ -3,6 +3,9 @@ from sqlmodel import Field, Session, SQLModel, select
 from pydantic import BaseModel, field_validator
 from passlib.context import CryptContext
 from app import engine
+from jose import JWTError, jwt
+from config import settings
+from datetime import datetime, timedelta, timezone
 
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -24,7 +27,6 @@ class Users(SQLModel, table=True):
     username: str = Field(unique=True, index=True)
     hashed_password: str
 
-
 class UserCreate(BaseModel):
     username: str
     password: str
@@ -41,11 +43,14 @@ class UserCreate(BaseModel):
             raise ValueError("Username cannot be empty")
         return v
 
-
 class userLogin(BaseModel):
     username: str
     password: str
 
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: Users
 
 @routerSession.post("/register/", response_model=Users)
 def create_user(user_data: UserCreate) -> Users:
@@ -66,7 +71,7 @@ def create_user(user_data: UserCreate) -> Users:
         return user
 
 
-@routerSession.post("/login/")
+@routerSession.post("/login/", response_model= TokenResponse)
 def login_user(login_data: userLogin) -> dict:
     with Session(engine) as session:
         user = session.exec(
@@ -76,4 +81,10 @@ def login_user(login_data: userLogin) -> dict:
         if not user or not verify_password(login_data.password, user.hashed_password):
             raise HTTPException(status_code=401, detail="Invalid username or password")
 
-        return {"message": "login successful"}
+        expire =datetime.now(timezone.utc) + timedelta(hours=1)
+
+        payload = {"sub": user.username, "exp": expire}
+
+        token = jwt.encode(payload, settings.SECRET_KEY, algorithm="HS256")
+
+        return TokenResponse(access_token=token, user=user)

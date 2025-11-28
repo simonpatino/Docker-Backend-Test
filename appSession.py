@@ -6,6 +6,7 @@ from app import engine
 from jose import JWTError, jwt
 from config import settings
 from datetime import datetime, timedelta, timezone
+from fastapi.security import OAuth2PasswordBearer
 
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -17,6 +18,7 @@ def hash_password(password: str) -> str:
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
+
 
 
 routerSession = APIRouter()
@@ -50,7 +52,7 @@ class userLogin(BaseModel):
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
-    user: Users
+    
 
 @routerSession.post("/register/", response_model=Users)
 def create_user(user_data: UserCreate) -> Users:
@@ -87,4 +89,4 @@ def login_user(login_data: userLogin) -> dict:
 
         token = jwt.encode(payload, settings.SECRET_KEY, algorithm="HS256")
 
-        return TokenResponse(access_token=token, user=user)
+        return TokenResponse(access_token=token)

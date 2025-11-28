@@ -1,11 +1,15 @@
 from collections.abc import AsyncIterator, Sequence
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI, HTTPException, status, Depends
 from sqlmodel import Field, Session, SQLModel, create_engine, select, text
-
+from fastapi.security import OAuth2PasswordBearer
+from jose import jwt, JWTError
 
 from config import settings
+
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login/")
 
 
 class Hero(SQLModel, table=True):
@@ -34,8 +38,34 @@ app = FastAPI(lifespan=lifespan)
 
 
 from appSession import routerSession
+from appSession import Users
 
 app.include_router(routerSession)
+
+
+def get_current_user(token: str = Depends(oauth2_scheme)) -> Users:
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+
+        username: str = payload.get("sub")
+        if username is None:
+            raise credentials_exception
+
+    except JWTError:
+        raise credentials_exception
+
+    with Session(engine) as session:
+        user = session.exec(select(Users).where(Users.username == username)).first()
+        if user is None:
+            raise credentials_exception
+
+    return user
 
 
 @app.get("/")
@@ -44,7 +74,7 @@ def hello() -> str:
 
 
 @app.post("/heroes/", response_model=Hero)
-def create_hero(hero: Hero) -> Hero:
+def create_hero(hero: Hero, current_user: Users = Depends(get_current_user)) -> Hero:
     with Session(engine) as session:
         session.add(hero)
         session.commit()
@@ -53,7 +83,7 @@ def create_hero(hero: Hero) -> Hero:
 
 
 @app.get("/heroes/")
-def read_heroes() -> Sequence[Hero]:
+def read_heroes(current_user: Users = Depends(get_current_user)) -> Sequence[Hero]:
     with Session(engine) as session:
         heroes = session.exec(select(Hero)).all()
         return heroes
@@ -77,7 +107,7 @@ def health_check() -> dict:
 
 
 @app.get("/heroes/{hero_id}")
-def read_hero(hero_id: int) -> Hero:
+def read_hero(hero_id: int, current_user: Users = Depends(get_current_user)) -> Hero:
     with Session(engine) as session:
         hero = session.get(Hero, hero_id)
         if not hero:
@@ -86,7 +116,7 @@ def read_hero(hero_id: int) -> Hero:
 
 
 @app.put("/heroes/{hero_id}", response_model=Hero)
-def update_hero(hero_id: int, updated_hero: Hero) -> Hero:
+def update_hero(hero_id: int, updated_hero: Hero, current_user: Users = Depends(get_current_user)) -> Hero:
     with Session(engine) as session:
         hero = session.get(Hero, hero_id)
         if not hero:
@@ -101,7 +131,7 @@ def update_hero(hero_id: int, updated_hero: Hero) -> Hero:
 
 
 @app.delete("/heroes/{hero_id}", response_model=dict)
-def delete_hero(hero_id: int) -> dict:
+def delete_hero(hero_id: int, current_user: Users = Depends(get_current_user)) -> dict:
     with Session(engine) as session:
         hero = session.get(Hero, hero_id)
 

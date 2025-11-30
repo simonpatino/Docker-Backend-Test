@@ -56,4 +56,8 @@ venv.bak/
 
 # Personal files
 test.py
-pyproject.toml
+
+# Old files (deprecated after migration)
+app.py
+appSession.py
+config.py
